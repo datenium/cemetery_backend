@@ -1,0 +1,233 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id          String     @id @default(nanoid())
+  name        String     @unique
+  address     Address    @relation(fields: [addressId], references: [id])
+  addressId   String     @unique
+  client_type String     @default("INDIVIDUAL")
+  cemeteries  Cemetery[]
+  users       User[]
+  description String
+  createdAt   DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime   @updatedAt @db.Timestamptz(3)
+}
+
+model Cemetery {
+  id             String           @id @default(nanoid())
+  name           String           @unique
+  cemetery_type  String
+  client         Client           @relation(fields: [clientId], references: [id])
+  clientId       String
+  address        Address          @relation(fields: [addressId], references: [id])
+  addressId      String           @unique
+  UserOnCemetery UserOnCemetery[]
+  graveTypes     GraveType[]
+  description    String
+  latitude       Float
+  longitude      Float
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @db.Timestamptz(3)
+}
+
+model Beneficiary {
+  id               String    @id @default(nanoid())
+  beneficiary_type String    @default("PERSON")
+  firstName        String
+  lastName         String
+  address          Address   @relation(fields: [addressId], references: [id])
+  addressId        String    @unique
+  birthDate        DateTime
+  deathDate        DateTime
+  graves           Grave[]
+  invoices         Invoice[]
+  createdAt        DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(3)
+}
+
+model Deceased {
+  id                String              @id @default(nanoid())
+  firstName         String
+  lastName          String
+  sex               String
+  birthDate         DateTime
+  deathDate         DateTime
+  buriedOn          DateTime?
+  buriedUntil       DateTime?
+  grave             Grave?              @relation(fields: [graveId], references: [id])
+  graveId           String?
+  excavationDetails ExcavationDetails[]
+  description       String
+  createdAt         DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime            @updatedAt @db.Timestamptz(3)
+}
+
+model Grave {
+  id                 String              @id @default(nanoid())
+  graveNumber        String              @unique
+  graveArea          String
+  graveSubArea       String
+  graveSubAreaNumber String
+  description        String
+  graveType          GraveType           @relation(fields: [graveTypeId], references: [id])
+  graveTypeId        String
+  beneficiary        Beneficiary?        @relation(fields: [beneficiaryId], references: [id])
+  deceased           Deceased[]
+  beneficiaryId      String?
+  createdOn          DateTime
+  leasedOn           DateTime
+  leasedUntil        DateTime
+  depth              Int
+  width              Int
+  length             Int
+  latitude           Float
+  longitude          Float
+  excavationDetails  ExcavationDetails[]
+  leaseExtensions    LeaseExtension[]
+  invoices           Invoice[]
+  createdAt          DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime            @updatedAt @db.Timestamptz(3)
+}
+
+model GraveType {
+  id                 String        @id @default(nanoid())
+  name               String        @unique
+  Cemetery           Cemetery      @relation(fields: [cemeteryId], references: [id])
+  cemeteryId         String
+  graves             Grave[]
+  allowedBurialTypes BurialType[]
+  allowedCoffinTypes CoffinTypes[]
+  createdAt          DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt          DateTime      @updatedAt @db.Timestamptz(3)
+}
+
+model LeaseExtension {
+  id            String   @id @default(nanoid())
+  description   String
+  extendedOn    DateTime
+  extendedUntil DateTime
+  grave         Grave    @relation(fields: [graveId], references: [id])
+  graveId       String
+  createdAt     DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model InvoicePosition {
+  id        String   @id @default(nanoid())
+  name      String
+  price     Float
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id])
+  invoiceId String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model Invoice {
+  id             String            @id @default(nanoid())
+  description    String
+  invoiceNumber  String            @unique
+  invoiceDate    DateTime
+  invoiceDueDate DateTime
+  invoiceStatus  String            @default("UNPAID")
+  positions      InvoicePosition[]
+  grave          Grave             @relation(fields: [graveId], references: [id])
+  graveId        String
+  createdBy      User              @relation(fields: [createdById], references: [id])
+  createdById    String
+  beneficiary    Beneficiary       @relation(fields: [beneficiaryId], references: [id])
+  beneficiaryId  String
+  createdAt      DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime          @updatedAt @db.Timestamptz(3)
+}
+
+model ExcavationDetails {
+  id             String   @id @default(nanoid())
+  description    String
+  grave          Grave    @relation(fields: [graveId], references: [id])
+  graveId        String
+  date           DateTime
+  excavatedFor   Deceased @relation(fields: [excavatedForId], references: [id])
+  excavatedForId String
+  createdAt      DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model Address {
+  id           String       @id @default(nanoid())
+  street       String
+  house_number String
+  city         String
+  zip_code     String
+  country      String
+  cemetery     Cemetery?
+  client       Client?
+  beneficiary  Beneficiary?
+  createdAt    DateTime     @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime     @updatedAt @db.Timestamptz(3)
+}
+
+model Role {
+  id        String   @id @default(nanoid())
+  name      String   @unique
+  users     User[]
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model User {
+  id             String           @id @default(nanoid())
+  email          String           @unique
+  password       String
+  firstName      String
+  lastName       String
+  active         Boolean          @default(false)
+  confirmed      Boolean          @default(false)
+  client         Client           @relation(fields: [clientId], references: [id])
+  clientId       String
+  role           Role             @relation(fields: [roleId], references: [id])
+  roleId         String
+  userOnCemetery UserOnCemetery[]
+  invoices       Invoice[]
+  createdAt      DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime         @updatedAt @db.Timestamptz(3)
+}
+
+model UserOnCemetery {
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  cemetery   Cemetery @relation(fields: [cemeteryId], references: [id])
+  cemeteryId String
+  assignedAt DateTime @default(now()) @db.Timestamptz(3)
+
+  @@id([userId, cemeteryId])
+}
+
+model BurialType {
+  id          String     @id @default(nanoid())
+  name        String     @unique
+  description String
+  graveType   GraveType? @relation(fields: [graveTypeId], references: [id])
+  graveTypeId String?
+  createdAt   DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime   @updatedAt @db.Timestamptz(3)
+}
+
+model CoffinTypes {
+  id          String     @id @default(nanoid())
+  name        String     @unique
+  description String
+  graveType   GraveType? @relation(fields: [graveTypeId], references: [id])
+  graveTypeId String?
+  createdAt   DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime   @updatedAt @db.Timestamptz(3)
+}
