@@ -6,9 +6,17 @@ export const getCached = async <T>(
   options: CachedOptions
 ): Promise<T | null> => {
   const { store, path } = options;
-  const result = await redis.json.get(store, { path });
-  return result as T;
+  return (await redis.json.get(store, { path })) as T;
 };
+
+// export const setCached = async <T>(
+//   redis: RedisClientType,
+//   options: CachedOptions,
+//   data: T
+// ): Promise<T | null> => {
+//   const { store, path } = options;
+//   return (await redis.json.set(store, data)) as T;
+// };
 
 // export const getMultipleCache = async (
 //   me: JwtPayload | undefined,

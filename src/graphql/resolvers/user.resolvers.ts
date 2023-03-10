@@ -48,9 +48,19 @@ export default {
         const { dbclient, me, redis } = context;
         if (!me) throw new GraphQLError(errors.NOT_AUTHENTICATED);
         const { id } = me;
+        const {
+          clientId,
+          params: { store, path },
+        } = getRedisParams({ me, resource: "user", id });
         try {
-          const user = await dbclient.user.findUnique({ where: { id } });
-          return user;
+          const user = await getCached<User[]>(redis, { store, path });
+          if (user) {
+            return user[0];
+          } else {
+            const user = await dbclient.user.findUnique({ where: { id } });
+            await redis.json.set(store, "$", user);
+            return user;
+          }
         } catch (err) {
           throw new GraphQLError(errors.CONNECTION_FAILED);
         }
@@ -71,7 +81,7 @@ export default {
             return user[0];
           } else {
             const user = await dbclient.user.findUnique({ where: { id } });
-            await redis.json.set(store, path, user);
+            await redis.json.set(store, "$", user);
             return user;
           }
         } catch (err) {
@@ -96,6 +106,7 @@ export default {
               where: { clientId },
             });
             await redis.json.set(store, "$", users);
+            // await setCached(redis, { store, path }, users);
             return users;
           }
         } catch (err) {
